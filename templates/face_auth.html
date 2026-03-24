@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Authentication</title>
+    <!-- Assuming your style.css is in static/style.css -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='otp_login.css') }}"> <!-- Reuse login styles -->
+    <style>
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            text-align: center;
+        }
+        video {
+            border: 3px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            max-width: 100%;
+        }
+        .btn-capture {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-capture:hover { background-color: #0056b3; }
+        .alert { padding: 10px; margin-bottom: 20px; border-radius: 5px; width: 100%; max-width: 400px; }
+        .alert-danger { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Face Verification Required</h2>
+        <p>Please position your face in the camera view.</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div id="camera-section">
+            <video id="video" autoplay playsinline width="400" height="300"></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+            
+            <form id="authForm" method="POST" action="{{ url_for('face_auth') }}">
+                <input type="hidden" name="image_data" id="image_data">
+                <button type="button" id="snap" class="btn-capture">Verify Identity</button>
+            </form>
+        </div>
+        <p id="error-msg" style="color:red; display:none;">Camera access denied. Please check your browser settings.</p>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const snap = document.getElementById('snap');
+        const imageDataInput = document.getElementById('image_data');
+        const form = document.getElementById('authForm');
+        const errorMsg = document.getElementById('error-msg');
+
+        // Request Camera Access
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { 
+                video.srcObject = stream; 
+            })
+            .catch(err => { 
+                console.error("Camera error:", err);
+                errorMsg.style.display = 'block';
+                snap.disabled = true;
+                snap.style.backgroundColor = '#ccc';
+            });
+
+        snap.addEventListener("click", () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to Base64
+            const dataURL = canvas.toDataURL('image/jpeg');
+            imageDataInput.value = dataURL;
+            
+            snap.innerText = "Verifying...";
+            snap.disabled = true;
+            form.submit();
+        });
+    </script>
+</body>
+</html> 

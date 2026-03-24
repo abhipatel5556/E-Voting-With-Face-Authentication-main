@@ -1,0 +1,102 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Settings • FaceID Voting</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link href="static/style.css" rel="stylesheet" />
+</head>
+<body class="d-flex flex-column min-vh-100" style="font-family: Poppins, var(--font-sans);">
+  <nav class="navbar navbar-expand-lg app-header-admin shadow-sm">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="./admin_dashboard.html">
+        <img alt="Logo" class="me-2" onerror="this.onerror=null;this.src='https://picsum.photos/seed/faceid/56/28'" src="https://dsaishared.blob.core.windows.net/uxcceleratecontainer/projects/68bd9542e1229daa603ec466/logos/logo_94009328-59f7-426f-bafe-3182305ed5e5.webp" style="height:28px;"/>
+        Admin Console
+      </a>
+      <div class="ms-auto">
+        <a class="btn btn-light btn-sm" href="./admin_dashboard.html">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-fill">
+    <div class="container py-4">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+          <div class="card app-card">
+            <div class="card-header bg-muted">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-gear text-primary"></i>
+                <div>
+                  <div class="widget-title">Admin Settings</div>
+                  <small class="text-muted">Update your profile</small>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                  {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                  {% endfor %}
+                {% endif %}
+              {% endwith %}
+
+              <form method="POST" action="./admin_settings.html" enctype="multipart/form-data">
+                <div class="mb-3">
+                  <label class="form-label" for="fullName">Full Name</label>
+                  <input class="form-control" id="fullName" name="full_name" type="text" value="{{ session.get('name','') }}" required />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="email">Email</label>
+                  <input class="form-control" id="email" name="email" type="email" value="{{ session.get('email','') }}" required />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="password">New Password (optional)</label>
+                  <input class="form-control" id="password" name="password" type="password" placeholder="Leave blank to keep current" />
+                </div>
+                
+                <hr class="my-4" />
+                <h6 class="text-uppercase text-muted">Organization Profile</h6>
+                <div class="mb-3">
+                  <label class="form-label" for="orgName">Organization Name</label>
+                  <input class="form-control" id="orgName" name="org_name" type="text" value="{{ org.org_name if org else '' }}" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="orgCode">Organization ID</label>
+                  <input class="form-control" id="orgCode" name="org_code" type="text" value="{{ org.org_code if org else '' }}" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="orgLogo">Organization Logo</label>
+                  <input class="form-control" id="orgLogo" name="org_logo" type="file" accept="image/*" />
+                  {% if org and org.org_logo_path %}
+                  <div class="mt-2">
+                    <img src="{{ url_for('static', filename=org.org_logo_path) }}" alt="Org Logo" style="height:48px" />
+                  </div>
+                  {% endif %}
+                </div>
+<div class="d-flex justify-content-between">
+                  <a class="btn btn-light" href="./admin_dashboard.html">Cancel</a>
+                  <button class="btn btn-primary" type="submit">Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer py-3 mt-auto">
+    <div class="container d-flex justify-content-between">
+      <small>© 2025 FaceID Voting</small>
+      <div class="d-flex gap-3">
+        <a class="small" href="./privacy.html">Privacy</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

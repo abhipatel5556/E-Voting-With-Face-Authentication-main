@@ -1,0 +1,240 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FaceID Voting • Register</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link href="static/style.css" rel="stylesheet" />
+</head>
+<body class="d-flex flex-column min-vh-100" style="font-family: Poppins, var(--font-sans);">
+  <nav class="navbar navbar-expand-lg app-header-shared shadow-sm">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="./index.html">
+        <img alt="Logo" class="me-2" onerror="this.onerror=null;this.src='https://picsum.photos/seed/brand/56/28';" src="https://dsaishared.blob.core.windows.net/uxcceleratecontainer/projects/68bd9542e1229daa603ec466/logos/logo_94009328-59f7-426f-bafe-3182305ed5e5.webp" style="height:28px;" />
+        FaceID Voting
+      </a>
+      <div class="ms-auto">
+        <a class="btn btn-light btn-sm" href="./index.html"><i class="fa-solid fa-right-to-bracket me-1"></i>Login</a>
+      </div>
+    </div>
+  </nav>
+  <style>
+    .app-header-shared{background:#6144a6;color:#fff}
+    .app-header-shared .navbar-brand,.app-header-shared .nav-link{color:#fff}
+  </style>
+
+  <main class="flex-fill">
+    <div class="container py-4 py-md-5">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+          <div class="card app-card">
+            <div class="card-header bg-muted">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-user-plus text-primary"></i>
+                <div>
+                  <div class="widget-title">Create your account</div>
+                  <small class="text-muted">Register with face capture and email OTP</small>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                  {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                  {% endfor %}
+                {% endif %}
+              {% endwith %}
+
+              <form id="registrationForm" method="POST" action="/registration_page.html">
+                <input type="hidden" name="face_image_b64" id="faceImageB64" />
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="fullName">Full Name</label>
+                    <input class="form-control" id="fullName" name="full_name" required type="text" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="uniqueId">Username</label>
+                    <input class="form-control" id="uniqueId" name="unique_id" placeholder="e.g., abhi_patel" required type="text" />
+                  </div>
+                  
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="role">Role</label>
+                    <select class="form-select" id="role" name="role" required>
+                      <option value="voter" selected>Voter</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="adminCode">Admin Code</label>
+                    <input class="form-control" id="adminCode" name="admin_code" placeholder="Enter admin code" type="text" />
+                    <div class="form-text">Required only if Admin is selected.</div>
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="orgCode">Organization ID</label>
+                    <input class="form-control" id="orgCode" name="org_code" required type="text" placeholder="e.g., ORG-001" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="orgName">Organization Name (new org)</label>
+                    <input class="form-control" id="orgName" name="org_name" type="text" placeholder="Your organization name" />
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="dob">Date of Birth</label>
+                    <input class="form-control" id="dob" name="date_of_birth" type="date" required />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="govId">Government/Org ID</label>
+                    <input class="form-control" id="govId" name="gov_id" type="text" required placeholder="ID number" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="department">Department</label>
+                    <input class="form-control" id="department" name="department" type="text" required placeholder="e.g., CSE" />
+                  </div>
+<div class="col-12">
+                    <label class="form-label" for="email">Email</label>
+                    <input class="form-control" id="email" name="email" required type="email" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="password">Password</label>
+                    <input class="form-control" id="password" name="password" required type="password" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <input class="form-control" id="confirmPassword" name="confirm_password" required type="password" />
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <h6 class="text-muted text-uppercase">Face Capture</h6>
+                  <div class="border rounded p-3">
+                    <video id="liveVideo" autoplay muted playsinline style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;"></video>
+                    <canvas id="snapshotCanvas" class="d-none"></canvas>
+                    <div class="d-flex gap-2 mt-3">
+                      <button class="btn btn-light" id="startCameraBtn" type="button"><i class="fa-solid fa-camera"></i> Start Camera</button>
+                      <button class="btn btn-primary" id="captureBtn" type="button" disabled><i class="fa-solid fa-circle-dot"></i> Take Photo</button>
+                      <button class="btn btn-outline-secondary d-none" id="retakeBtn" type="button"><i class="fa-solid fa-rotate-left"></i> Retake</button>
+                    </div>
+                    <img id="capturedImg" class="img-fluid rounded border mt-3 d-none" alt="Captured face" />
+                    <div class="text-muted small mt-2" id="cameraStatus"></div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                  <a class="btn btn-light" href="./index.html">Back to Login</a>
+                  <button class="btn btn-primary" type="submit"><i class="fa-solid fa-user-check me-1"></i> Create Account</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer py-3 mt-auto">
+    <div class="container d-flex justify-content-between">
+      <small>© 2025 FaceID Voting</small>
+      <div class="d-flex gap-3">
+        <a class="small" href="./terms.html">Terms</a>
+        <a class="small" href="./privacy.html">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function() {
+      const form = document.getElementById('registrationForm');
+      const startCameraBtn = document.getElementById('startCameraBtn');
+      const captureBtn = document.getElementById('captureBtn');
+      const retakeBtn = document.getElementById('retakeBtn');
+      const liveVideo = document.getElementById('liveVideo');
+      const snapshotCanvas = document.getElementById('snapshotCanvas');
+      const capturedImg = document.getElementById('capturedImg');
+      const cameraStatus = document.getElementById('cameraStatus');
+      const faceImageB64 = document.getElementById('faceImageB64');
+      let stream = null;
+
+      // auto-generate username from full name
+
+      const fullNameInput = document.getElementById('fullName');
+      const usernameInput = document.getElementById('uniqueId');
+
+      function slugifyName(name) {
+        return name.trim().toLowerCase()
+          .replace(/[^a-z0-9\s]/g, '')
+          .replace(/\s+/g, '_')
+          .slice(0, 20);
+      }
+
+      fullNameInput.addEventListener('blur', () => {
+        if (!usernameInput.value) {
+          const base = slugifyName(fullNameInput.value);
+          if (base) usernameInput.value = base + '_' + Math.floor(100 + Math.random() * 900);
+        }
+      });
+
+
+      async function startCamera() {
+        try {
+          if (stream) return;
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+          liveVideo.srcObject = stream;
+          captureBtn.disabled = false;
+          cameraStatus.textContent = 'Camera is active. Position your face and click Take Photo.';
+        } catch (err) {
+          cameraStatus.textContent = 'Could not access camera. Please allow permission.';
+        }
+      }
+
+      function stopCamera() {
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+          stream = null;
+        }
+      }
+
+      function capturePhoto() {
+        if (!liveVideo.videoWidth) return;
+        snapshotCanvas.width = liveVideo.videoWidth;
+        snapshotCanvas.height = liveVideo.videoHeight;
+        const ctx = snapshotCanvas.getContext('2d');
+        ctx.drawImage(liveVideo, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+        const dataUrl = snapshotCanvas.toDataURL('image/jpeg', 0.9);
+        faceImageB64.value = dataUrl;
+        capturedImg.src = dataUrl;
+        capturedImg.classList.remove('d-none');
+        retakeBtn.classList.remove('d-none');
+        cameraStatus.textContent = 'Photo captured. You can retake if needed.';
+      }
+
+      function retakePhoto() {
+        faceImageB64.value = '';
+        capturedImg.classList.add('d-none');
+        retakeBtn.classList.add('d-none');
+        cameraStatus.textContent = 'Camera is active. Position your face and click Take Photo.';
+      }
+
+      startCameraBtn.addEventListener('click', startCamera);
+      // auto-open camera
+      startCamera();
+      captureBtn.addEventListener('click', capturePhoto);
+      retakeBtn.addEventListener('click', retakePhoto);
+
+      form.addEventListener('submit', function(e) {
+        if (!faceImageB64.value) {
+          e.preventDefault();
+          alert('Please capture your face photo before submitting.');
+        }
+      });
+
+      window.addEventListener('beforeunload', stopCamera);
+    })();
+  </script>
+</body>
+</html>
