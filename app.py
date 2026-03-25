@@ -104,6 +104,44 @@ def get_db_connection():
             return None
 
 
+def normalize_datetime_input(value):
+    if not value:
+        return None
+
+    if isinstance(value, datetime.datetime):
+        parsed = value
+    else:
+        text = str(value).strip()
+        if not text:
+            return None
+        if text.endswith('Z'):
+            text = text[:-1] + '+00:00'
+        try:
+            parsed = datetime.datetime.fromisoformat(text)
+        except ValueError:
+            for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M'):
+                try:
+                    parsed = datetime.datetime.strptime(text, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                return None
+
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+    return parsed.strftime('%Y-%m-%d %H:%M:%S')
+
+
+def database_unavailable_response(api=False):
+    message = "Database is unavailable. Please try again in a moment."
+    if api:
+        return jsonify({"ok": False, "message": message}), 503
+    flash(message, "danger")
+    return redirect(url_for('index'))
+
+
 def init_db():
     conn = get_db_connection()
     if conn:
@@ -1087,8 +1125,12 @@ def create_election():
     if request.method == 'POST':
         title = request.form['title']
         description = request.form['description']
-        start_date = request.form['start_date']
-        end_date = request.form['end_date']
+        start_date = normalize_datetime_input(request.form['start_date'])
+        end_date = normalize_datetime_input(request.form['end_date'])
+
+        if not start_date or not end_date:
+            flash('Invalid start or end date.', 'danger')
+            return redirect(url_for('create_election'))
 
         conn = get_db_connection()
         if not conn:
@@ -1572,8 +1614,8 @@ def api_admin_create_election():
     data = request.get_json(silent=True) or {}
     title = (data.get('title') or '').strip()
     description = (data.get('description') or '').strip()
-    start_date = data.get('startDate')
-    end_date = data.get('endDate')
+    start_date = normalize_datetime_input(data.get('startDate'))
+    end_date = normalize_datetime_input(data.get('endDate'))
     candidates = data.get('candidates') or []
     voters = data.get('voters') or []
 
