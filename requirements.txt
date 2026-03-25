@@ -1,8 +1,8 @@
 flask
 flask-bcrypt
-flask-mail
 gunicorn
 mysql-connector-python
+resend
 face_recognition
 numpy
 opencv-python-headless

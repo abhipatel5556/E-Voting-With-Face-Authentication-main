@@ -14,16 +14,15 @@ try:
     import face_recognition
 except ModuleNotFoundError:
     face_recognition = None
+try:
+    import resend
+except ModuleNotFoundError:
+    resend = None
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_bcrypt import Bcrypt
 import mysql.connector
 from functools import wraps
-try:
-    from flask_mail import Mail, Message
-except ModuleNotFoundError:
-    Mail = None
-    Message = None
 from werkzeug.utils import secure_filename
 
 # --- APP CONFIGURATION ---
@@ -63,16 +62,13 @@ def _load_database_url():
 
 _load_database_url()
 
-# Email Configuration (Flask-Mail)
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
-app.config['MAIL_TIMEOUT'] = int(os.environ.get('MAIL_TIMEOUT', 10))
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER') or app.config['MAIL_USERNAME']
+# Email Configuration (Resend API)
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL')
+RESEND_FROM_NAME = os.environ.get('RESEND_FROM_NAME', 'E-Voting Platform')
 
-mail = Mail(app) if Mail else None
+if resend and RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 ADMIN_REGISTRATION_CODE = os.environ.get("ADMIN_REGISTRATION_CODE", "ADMIN2025")
 FALLBACK_ADMIN_USERNAME = os.environ.get("FALLBACK_ADMIN_USERNAME", "abhishek2511")
@@ -488,16 +484,22 @@ def build_pending_user_state(user_id):
 
 def send_otp_email(to_email, otp):
     try:
-        if mail is None or Message is None:
-            print("Flask-Mail is not installed. OTP email could not be sent.")
+        if resend is None:
+            print("Resend SDK is not installed. OTP email could not be sent.")
             return False
-        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
-            print("Mail credentials are missing. OTP email could not be sent.")
+        if not RESEND_API_KEY or not RESEND_FROM_EMAIL:
+            print("Resend credentials are missing. OTP email could not be sent.")
             return False
-        msg = Message("OTP Verification", recipients=[to_email])
-        msg.body = f"Your OTP is {otp}"
-        mail.send(msg)
-        print(f"Email sent successfully to {to_email}")
+
+        params = {
+            "from": f"{RESEND_FROM_NAME} <{RESEND_FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": "OTP Verification",
+            "text": f"Your OTP is {otp}",
+            "html": f"<p>Your OTP is <strong>{otp}</strong></p>",
+        }
+        response = resend.Emails.send(params)
+        print(f"Email sent successfully to {to_email}: {response}")
         return True
     except Exception as e:
         print(f"Failed to send email: {e}")
