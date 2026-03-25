@@ -1,0 +1,11 @@
+.git
+.gitignore
+.venv
+.vscode
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+templates/static/uploads

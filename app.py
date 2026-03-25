@@ -6,6 +6,7 @@ import json
 import random
 import base64
 import time
+from urllib.parse import urlparse, unquote
 
 import numpy as np
 import cv2
@@ -31,26 +32,52 @@ app.secret_key = os.environ.get("FLASK_SECRET", os.urandom(24))
 bcrypt = Bcrypt(app)
 
 # Database Configuration
-DB_HOST = "localhost"
-DB_USER = "root"
-DB_PASSWORD = "123456"
-DB_NAME = "evoting_db"
+DB_HOST = os.environ.get("DB_HOST") or os.environ.get("MYSQLHOST", "localhost")
+DB_PORT = int(os.environ.get("DB_PORT") or os.environ.get("MYSQLPORT", 3306))
+DB_USER = os.environ.get("DB_USER") or os.environ.get("MYSQLUSER", "root")
+DB_PASSWORD = os.environ.get("DB_PASSWORD") or os.environ.get("MYSQLPASSWORD", "")
+DB_NAME = os.environ.get("DB_NAME") or os.environ.get("MYSQLDATABASE", "evoting_db")
+
+
+def _load_database_url():
+    database_url = (
+        os.environ.get("DATABASE_URL")
+        or os.environ.get("MYSQL_URL")
+        or os.environ.get("MYSQL_PUBLIC_URL")
+    )
+    if not database_url:
+        return
+
+    parsed = urlparse(database_url)
+    if not parsed.scheme.startswith("mysql"):
+        return
+
+    global DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+    DB_HOST = parsed.hostname or DB_HOST
+    DB_PORT = parsed.port or DB_PORT
+    DB_USER = unquote(parsed.username) if parsed.username else DB_USER
+    DB_PASSWORD = unquote(parsed.password) if parsed.password else DB_PASSWORD
+    if parsed.path and parsed.path != "/":
+        DB_NAME = parsed.path.lstrip("/")
+
+
+_load_database_url()
 
 # Email Configuration (Flask-Mail)
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'abhishekpatel37317@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'vmmpxtrdxqqwcuyk')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'abhishekpatel37317@gmail.com')
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER') or app.config['MAIL_USERNAME']
 
 mail = Mail(app) if Mail else None
 
-ADMIN_REGISTRATION_CODE = "ADMIN2025"
+ADMIN_REGISTRATION_CODE = os.environ.get("ADMIN_REGISTRATION_CODE", "ADMIN2025")
 FALLBACK_ADMIN_USERNAME = os.environ.get("FALLBACK_ADMIN_USERNAME", "abhishek2511")
 
 # Upload Config
-UPLOAD_FOLDER = 'templates/static/uploads'
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'templates/static/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -61,6 +88,7 @@ def get_db_connection():
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
+            port=DB_PORT,
             user=DB_USER,
             password=DB_PASSWORD,
             database=DB_NAME
@@ -68,12 +96,12 @@ def get_db_connection():
         return conn
     except mysql.connector.Error as err:
         if err.errno == 1049:
-            conn = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD)
+            conn = mysql.connector.connect(host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASSWORD)
             cursor = conn.cursor()
             cursor.execute(f"CREATE DATABASE {DB_NAME}")
             conn.commit()
             conn.close()
-            return mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME)
+            return mysql.connector.connect(host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASSWORD, database=DB_NAME)
         else:
             print(f"Database Connection Error: {err}")
             return None
@@ -270,12 +298,19 @@ init_db()
 # Ensure a default admin exists
 
 def ensure_default_admin():
-    admin_email = os.environ.get("ADMIN_EMAIL", "abhishekpatel37317@gmail.com")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "25112004Abhi@")
-    admin_name = os.environ.get("ADMIN_NAME", "Abhishek Patel")
+    admin_email = os.environ.get("ADMIN_EMAIL")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+    admin_name = os.environ.get("ADMIN_NAME", "Platform Admin")
     admin_unique_id = os.environ.get("ADMIN_UNIQUE_ID", "abhishek2511")
 
+    if not admin_email or not admin_password:
+        print("Skipping default admin creation because ADMIN_EMAIL or ADMIN_PASSWORD is not set.")
+        return
+
     conn = get_db_connection()
+    if not conn:
+        print("Skipping default admin creation because database connection is unavailable.")
+        return
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id FROM users WHERE role = 'admin' AND email = %s", (admin_email,))
     admin = cursor.fetchone()
@@ -352,7 +387,7 @@ def get_fallback_admin_approver():
           AND (unique_id = %s OR email = %s)
         ORDER BY id ASC
         LIMIT 1
-    """, (FALLBACK_ADMIN_USERNAME, os.environ.get("ADMIN_EMAIL", "abhishekpatel37317@gmail.com")))
+    """, (FALLBACK_ADMIN_USERNAME, os.environ.get("ADMIN_EMAIL", "")))
     approver = cursor.fetchone()
     if not approver:
         cursor.execute("""
@@ -452,6 +487,9 @@ def send_otp_email(to_email, otp):
     try:
         if mail is None or Message is None:
             print("Flask-Mail is not installed. OTP email could not be sent.")
+            return False
+        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+            print("Mail credentials are missing. OTP email could not be sent.")
             return False
         msg = Message("OTP Verification", recipients=[to_email])
         msg.body = f"Your OTP is {otp}"
@@ -1792,4 +1830,8 @@ def admin_settings():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(
+        host='0.0.0.0',
+        port=int(os.environ.get('PORT', 5000)),
+        debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    )
