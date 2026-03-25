@@ -358,6 +358,8 @@ def get_org_admin_approver(org_id):
         return None
 
     conn = get_db_connection()
+    if not conn:
+        return None
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT id, full_name, email, unique_id
@@ -582,6 +584,8 @@ def is_duplicate_face(new_encoding_json, org_id=None, tolerance=0.45):
             return False
         new_enc = np.array(json.loads(new_encoding_json))
         conn = get_db_connection()
+        if not conn:
+            return False
         cursor = conn.cursor(dictionary=True)
         if org_id:
             cursor.execute("SELECT face_encoding FROM users WHERE face_encoding IS NOT NULL AND org_id = %s", (org_id,))
@@ -740,6 +744,8 @@ def register():
         conn.close()
 
         conn = get_db_connection()
+        if not conn:
+            return database_unavailable_response()
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -860,6 +866,8 @@ def otp_verification():
         action = request.form.get('action', 'verify')
         if action == 'resend':
             conn = get_db_connection()
+            if not conn:
+                return database_unavailable_response()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT email FROM users WHERE id = %s", (session['temp_user_id'],))
             user = cursor.fetchone()
@@ -869,6 +877,8 @@ def otp_verification():
                 otp = str(random.randint(100000, 999999))
                 otp_expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)
                 conn = get_db_connection()
+                if not conn:
+                    return database_unavailable_response()
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE users SET otp_code = %s, otp_purpose = 'login', otp_expires = %s WHERE id = %s
@@ -883,6 +893,8 @@ def otp_verification():
         entered_otp = request.form.get('otp', '').strip()
 
         conn = get_db_connection()
+        if not conn:
+            return database_unavailable_response()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE id = %s", (session['temp_user_id'],))
         user = cursor.fetchone()
@@ -904,6 +916,8 @@ def otp_verification():
                 session['org_id'] = user.get('org_id')
                 session['is_org_admin'] = user.get('is_org_admin', 0)
                 conn = get_db_connection()
+                if not conn:
+                    return database_unavailable_response()
                 cursor = conn.cursor()
                 cursor.execute("UPDATE users SET otp_code = NULL, otp_purpose = NULL, otp_expires = NULL WHERE id = %s", (user['id'],))
                 conn.commit()
@@ -932,6 +946,8 @@ def face_auth():
             return redirect(request.url)
 
         conn = get_db_connection()
+        if not conn:
+            return database_unavailable_response()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE id = %s", (session['temp_user_id'],))
         user = cursor.fetchone()
@@ -970,6 +986,8 @@ def email_verification():
             otp = str(random.randint(100000, 999999))
             otp_expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)
             conn = get_db_connection()
+            if not conn:
+                return database_unavailable_response()
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE users SET otp_code = %s, otp_purpose = 'email', otp_expires = %s WHERE id = %s
@@ -983,6 +1001,8 @@ def email_verification():
 
         entered_otp = request.form.get('otp', '').strip()
         conn = get_db_connection()
+        if not conn:
+            return database_unavailable_response()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE id = %s", (session['temp_user_id'],))
         user = cursor.fetchone()
@@ -994,6 +1014,8 @@ def email_verification():
                 flash('OTP expired. Please request a new one.', 'danger')
                 return redirect(url_for('email_verification'))
             conn = get_db_connection()
+            if not conn:
+                return database_unavailable_response()
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE users SET otp_code = NULL, otp_purpose = NULL, otp_expires = NULL, is_email_verified = 1 WHERE id = %s
@@ -1066,6 +1088,8 @@ def create_election():
         end_date = request.form['end_date']
 
         conn = get_db_connection()
+        if not conn:
+            return database_unavailable_response()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO elections (title, description, start_date, end_date, status, org_id) VALUES (%s, %s, %s, %s, 'upcoming', %s)",
                        (title, description, start_date, end_date, session.get('org_id')))
@@ -1082,6 +1106,8 @@ def create_election():
 @admin_required
 def manage_elections():
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM elections WHERE org_id = %s", (session.get('org_id'),))
     elections = cursor.fetchall()
@@ -1102,6 +1128,8 @@ def election_monitoring():
 @admin_required
 def admin_results():
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response()
     cursor = conn.cursor(dictionary=True)
     if session.get('is_org_admin'):
         cursor.execute("""
@@ -1199,6 +1227,8 @@ def admin_results():
 @admin_required
 def voter_management():
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response()
     cursor = conn.cursor(dictionary=True)
     if session.get('is_org_admin'):
         cursor.execute("""
@@ -1251,6 +1281,8 @@ def admin_guide():
 @login_required
 def voter_dashboard():
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT e.*,
@@ -1303,6 +1335,8 @@ def ballot_page_redirect():
 @login_required
 def vote(election_id):
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response()
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
@@ -1340,6 +1374,8 @@ def vote(election_id):
 @login_required
 def voter_results():
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT e.title, c.name, c.vote_count
@@ -1377,6 +1413,8 @@ def api_cast_vote():
         return jsonify({"ok": False, "message": "Face verification is required before voting."}), 400
 
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response(api=True)
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
@@ -1462,6 +1500,8 @@ def logout():
 @admin_required
 def api_admin_voters():
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response(api=True)
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT id, full_name, email, unique_id, approval_status, org_approval_status, created_at, face_image_path
@@ -1489,6 +1529,8 @@ def api_admin_voters():
 @admin_required
 def api_admin_approved_voters():
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response(api=True)
     cursor = conn.cursor(dictionary=True)
     if session.get('is_org_admin'):
         cursor.execute("""
@@ -1560,6 +1602,8 @@ def api_admin_create_election():
             return jsonify({"ok": False, "message": "Invalid voter selection."}), 400
 
     conn = get_db_connection()
+    if not conn:
+        return database_unavailable_response(api=True)
     cursor = conn.cursor(dictionary=True)
 
     if session.get('is_org_admin'):
